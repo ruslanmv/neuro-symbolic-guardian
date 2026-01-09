@@ -1,0 +1,9 @@
+version: "1.0.0"
+metadata:
+  name: "Aegis Default Policy"
+  description: "Baseline policy bundle for Aegis. Safe defaults."
+rules:
+  - id: "inventory.non_negative"
+    enabled: true
+    params:
+      timeout_ms: 50
