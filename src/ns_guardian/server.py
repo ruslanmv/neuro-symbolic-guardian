@@ -70,7 +70,7 @@ def run_cli_verify(text: str, facts: dict[str, Any] | None = None) -> None:
     decision = engine.verify(intent)
 
     # Output results
-    {
+    result = {
         "decision": decision.decision.value,
         "message": decision.human_message,
         "reason_codes": decision.reason_codes,
@@ -83,7 +83,7 @@ def run_cli_verify(text: str, facts: dict[str, Any] | None = None) -> None:
         "telemetry": {"latency_ms": decision.telemetry.latency_ms},
     }
 
-
+    print(json.dumps(result, indent=2))
 
 def main() -> None:
     """Main entry point."""
