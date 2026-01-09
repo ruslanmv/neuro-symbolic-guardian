@@ -1,46 +1,94 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
-name = "aegis"
-version = "1.0.0"
-description = "Aegis: a production-ready neuro-symbolic verification & policy enforcement layer for LLM systems"
+name = "neuro-symbolic-guardian"
+version = "2.0.0"
+description = "Neuro-Symbolic Guardian: Production-ready MCP server for LLM verification with symbolic logic layer"
 readme = "README.md"
-requires-python = ">=3.10"
-license = {text = "MIT"}
-authors = [{name = "Ruslan Magana Vsevolodovna"}]
-keywords = ["llm", "neuro-symbolic", "z3", "constraint-checking", "policy", "governance"]
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+authors = [{name = "Ruslan Magana Vsevolodovna", email = "ruslan@example.com"}]
+keywords = ["llm", "neuro-symbolic", "z3", "mcp", "model-context-protocol", "constraint-checking", "policy", "governance", "ai-safety"]
 classifiers = [
-  "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: MIT License",
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
+  "Intended Audience :: Developers",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-  "z3-solver>=4.12.0",
-  "python-dotenv>=1.0.0",
+  "z3-solver>=4.13.0",
+  "python-dotenv>=1.0.1",
   "requests>=2.31.0",
   "colorama>=0.4.6",
-  "pydantic>=2.6.0",
-  "PyYAML>=6.0.1",
+  "pydantic>=2.8.0",
+  "pyyaml>=6.0.1",
   "fastapi>=0.110.0",
-  "uvicorn>=0.27.0",
+  "uvicorn[standard]>=0.30.0",
+  "mcp>=0.9.0",
+  "anyio>=4.0.0",
+  "httpx>=0.27.0",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0.0", "httpx>=0.27.0", "ruff>=0.4.0"]
-metrics = ["prometheus-client>=0.19.0"]
+dev = [
+  "pytest>=8.0.0",
+  "pytest-asyncio>=0.23.0",
+  "pytest-cov>=5.0.0",
+  "httpx>=0.27.0",
+  "ruff>=0.4.0",
+  "mypy>=1.10.0",
+  "types-pyyaml>=6.0.0",
+  "types-requests>=2.31.0",
+]
+metrics = ["prometheus-client>=0.20.0"]
+all = ["neuro-symbolic-guardian[dev,metrics]"]
 
 [project.scripts]
+ns-guardian = "ns_guardian.server:main"
+ns-guardian-mcp = "ns_guardian.mcp_server:main"
 aegis = "aegis.cli:main"
-ns-guardian = "ns_guardian.cli:main"
 
 [tool.pytest.ini_options]
-addopts = "-q"
+addopts = "-q --strict-markers --cov=ns_guardian --cov=aegis --cov-report=term-missing"
 pythonpath = ["src"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
 
-[tool.setuptools]
-package-dir = {"" = "src"}
+[tool.hatch.build.targets.wheel]
+packages = ["src/ns_guardian", "src/aegis"]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src",
+  "/tests",
+  "/README.md",
+  "/LICENSE",
+  "/pyproject.toml",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "T20", "SIM"]
+ignore = ["E501", "B008"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_generics = false
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["z3", "colorama"]
+ignore_missing_imports = true

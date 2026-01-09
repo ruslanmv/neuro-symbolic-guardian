@@ -1,0 +1,183 @@
+# Production Policy Configuration
+# Version: 2.0.0
+# Description: Production-ready policy with comprehensive rules
+
+version: "2.0.0"
+environment: production
+fail_mode: closed  # Deny on uncertainty
+
+metadata:
+  description: "Production policy for Neuro-Symbolic Guardian"
+  owner: "Security Team"
+  last_updated: "2026-01-09"
+  compliance:
+    - "SOC2"
+    - "ISO27001"
+    - "GDPR"
+
+# Core verification rules
+rules:
+  # Physical Constraints
+  - id: "inventory.non_negative"
+    enabled: true
+    description: "Inventory quantities must be non-negative"
+    params:
+      timeout_ms: 50
+    risk_class: high
+
+  # Security Rules
+  - id: "security.no_secrets"
+    enabled: true
+    description: "Block API keys, tokens, and secrets"
+    params:
+      patterns:
+        - "sk-[A-Za-z0-9]{20,}"
+        - "AKIA[0-9A-Z]{16}"
+        - "ghp_[A-Za-z0-9]{36}"
+        - "Bearer [A-Za-z0-9-._~+/]+=*"
+      scan_depth: deep
+    risk_class: critical
+
+  - id: "security.no_public_buckets"
+    enabled: true
+    description: "Prevent creation of public S3 buckets or storage"
+    params:
+      block_public_access: true
+      require_encryption: true
+    risk_class: high
+
+  - id: "security.no_privilege_escalation"
+    enabled: true
+    description: "Prevent privilege escalation attempts"
+    params:
+      monitor_sudo: true
+      monitor_role_changes: true
+    risk_class: critical
+
+  # Data Protection
+  - id: "data.no_unencrypted_pii"
+    enabled: true
+    description: "PII must be encrypted at rest and in transit"
+    params:
+      require_encryption: true
+      pii_fields:
+        - "ssn"
+        - "credit_card"
+        - "email"
+        - "phone"
+        - "address"
+    risk_class: critical
+
+  - id: "data.retention_limits"
+    enabled: true
+    description: "Enforce data retention policies"
+    params:
+      max_retention_days: 365
+      require_deletion_schedule: true
+    risk_class: high
+
+  # Database Operations
+  - id: "database.no_truncate"
+    enabled: true
+    description: "Prevent table truncation in production"
+    params:
+      allowed_environments: ["dev", "test"]
+    risk_class: critical
+
+  - id: "database.require_where_clause"
+    enabled: true
+    description: "DELETE/UPDATE must have WHERE clause"
+    params:
+      allow_unconditional: false
+    risk_class: high
+
+  - id: "database.backup_before_migration"
+    enabled: true
+    description: "Require backup before schema migrations"
+    params:
+      require_backup: true
+      verify_backup: true
+    risk_class: critical
+
+  # Cloud Infrastructure
+  - id: "cloud.require_tags"
+    enabled: true
+    description: "All cloud resources must have proper tags"
+    params:
+      required_tags:
+        - "Environment"
+        - "Owner"
+        - "CostCenter"
+        - "Project"
+    risk_class: medium
+
+  - id: "cloud.no_root_access"
+    enabled: true
+    description: "Root account access should be blocked"
+    params:
+      require_mfa: true
+      monitor_root_usage: true
+    risk_class: critical
+
+  # Compliance
+  - id: "compliance.audit_log"
+    enabled: true
+    description: "All actions must be auditable"
+    params:
+      require_audit_trail: true
+      log_retention_days: 90
+    risk_class: high
+
+  - id: "compliance.change_approval"
+    enabled: true
+    description: "Production changes require approval"
+    params:
+      require_approval: true
+      min_approvers: 2
+      environments: ["production", "staging"]
+    risk_class: critical
+
+  # Rate Limiting
+  - id: "rate.api_calls"
+    enabled: true
+    description: "Enforce API rate limits"
+    params:
+      max_calls_per_minute: 100
+      max_calls_per_hour: 1000
+    risk_class: medium
+
+  - id: "rate.cost_limits"
+    enabled: true
+    description: "Prevent runaway costs"
+    params:
+      max_cost_per_day: 1000
+      alert_threshold: 0.8
+    risk_class: high
+
+# Risk classification defaults
+risk_classes:
+  critical:
+    fail_mode: closed
+    require_human_approval: true
+    timeout_ms: 100
+
+  high:
+    fail_mode: closed
+    require_logging: true
+    timeout_ms: 100
+
+  medium:
+    fail_mode: closed
+    timeout_ms: 50
+
+  low:
+    fail_mode: open
+    timeout_ms: 50
+
+# Global settings
+settings:
+  enable_caching: true
+  cache_ttl_seconds: 300
+  enable_metrics: true
+  enable_tracing: true
+  log_all_decisions: true
