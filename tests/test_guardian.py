@@ -1,7 +1,6 @@
 from ns_guardian.guardian import LogicGuardian
 
 
-
 def test_valid_consume():
     g = LogicGuardian()
     r = g.verify_transaction(current_state=2, action_value=1, operation="consume")

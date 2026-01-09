@@ -4,14 +4,12 @@ import hashlib
 import re
 import time
 import uuid
-from typing import Any, Dict, Optional
 
 from .policy import Policy, default_policy_path, load_policy
 from .rules.base import RuleSpec
 from .rules.inventory import InventoryNonNegativeRule
 from .rules.registry import RuleRegistry
 from .schemas import AegisDecision, Decision, Intent, RuleHit, Telemetry
-
 
 _SECRET_PATTERNS = [
     re.compile(r"sk-[A-Za-z0-9]{20,}"),
@@ -25,7 +23,7 @@ class AegisEngine:
     Takes a validated Intent and returns the standard AegisDecision.
     """
 
-    def __init__(self, policy: Optional[Policy] = None) -> None:
+    def __init__(self, policy: Policy | None = None) -> None:
         self.policy = policy or load_policy(default_policy_path())
         self.registry = RuleRegistry()
         # Register built-in rules
@@ -33,7 +31,7 @@ class AegisEngine:
 
     def verify(self, intent: Intent) -> AegisDecision:
         t0 = time.perf_counter()
-        stages: Dict[str, int] = {}
+        stages: dict[str, int] = {}
         request_id = str(uuid.uuid4())
 
         # Stage 1: input scanning (very small baseline)
@@ -116,19 +114,19 @@ class AegisEngine:
         )
 
     @staticmethod
-    def _scan_secrets(text: str) -> Optional[str]:
+    def _scan_secrets(text: str) -> str | None:
         for pat in _SECRET_PATTERNS:
             if pat.search(text or ""):
                 return pat.pattern
         return None
 
     @staticmethod
-    def _telemetry(start: float, stages: Dict[str, int]) -> Telemetry:
+    def _telemetry(start: float, stages: dict[str, int]) -> Telemetry:
         latency_ms = int((time.perf_counter() - start) * 1000)
         return Telemetry(latency_ms=latency_ms, stages_ms=stages)
 
     @staticmethod
     def request_fingerprint(intent: Intent) -> str:
         """Stable hash useful for auditing without storing raw text."""
-        blob = f"{intent.text}|{intent.action.op}|{sorted(intent.action.args.items())}".encode("utf-8")
+        blob = f"{intent.text}|{intent.action.op}|{sorted(intent.action.args.items())}".encode()
         return hashlib.sha256(blob).hexdigest()

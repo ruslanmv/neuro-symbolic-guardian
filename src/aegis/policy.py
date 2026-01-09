@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -15,8 +15,8 @@ class Policy:
     """
 
     version: str
-    rules: List[Dict[str, Any]]
-    metadata: Dict[str, Any]
+    rules: list[dict[str, Any]]
+    metadata: dict[str, Any]
 
 
 def load_policy(path: str | Path) -> Policy:

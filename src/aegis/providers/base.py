@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class LLMProvider(ABC):
@@ -13,7 +13,7 @@ class LLMProvider(ABC):
         system: str,
         user: str,
         *,
-        json_schema: Optional[Dict[str, Any]] = None,
+        json_schema: dict[str, Any] | None = None,
         timeout_s: float = 15.0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         raise NotImplementedError

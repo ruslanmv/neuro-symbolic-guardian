@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -24,10 +24,10 @@ class Action(BaseModel):
     op: str = Field(
         ..., description="Operation name (domain op or tool name)."
     )
-    args: Dict[str, Any] = Field(
+    args: dict[str, Any] = Field(
         default_factory=dict, description="Operation arguments."
     )
-    tool: Optional[str] = Field(
+    tool: str | None = Field(
         default=None,
         description="Optional tool identifier if the action uses a tool.",
     )
@@ -40,7 +40,7 @@ class Action(BaseModel):
 class Facts(BaseModel):
     """Structured world-state facts used for verification."""
 
-    data: Dict[str, Any] = Field(default_factory=dict)
+    data: dict[str, Any] = Field(default_factory=dict)
 
 
 class Intent(BaseModel):
@@ -49,8 +49,8 @@ class Intent(BaseModel):
     text: str = Field(..., description="Original user text.")
     action: Action
     facts: Facts = Field(default_factory=Facts)
-    assumptions: List[str] = Field(default_factory=list)
-    prompt_version: Optional[str] = Field(
+    assumptions: list[str] = Field(default_factory=list)
+    prompt_version: str | None = Field(
         default=None, description="Prompt/extractor version used to create the intent."
     )
 
@@ -62,23 +62,23 @@ class RuleHit(BaseModel):
     ok: bool
     code: str
     message: str
-    details: Dict[str, Any] = Field(default_factory=dict)
+    details: dict[str, Any] = Field(default_factory=dict)
 
 
 class Telemetry(BaseModel):
     """Basic telemetry returned for debugging/ops."""
 
-    latency_ms: Optional[int] = None
-    stages_ms: Dict[str, int] = Field(default_factory=dict)
+    latency_ms: int | None = None
+    stages_ms: dict[str, int] = Field(default_factory=dict)
 
 
 class AegisDecision(BaseModel):
     """The production decision contract for Aegis."""
 
     decision: Decision
-    reason_codes: List[str] = Field(default_factory=list)
+    reason_codes: list[str] = Field(default_factory=list)
     human_message: str
     policy_version: str
-    rule_hits: List[RuleHit] = Field(default_factory=list)
+    rule_hits: list[RuleHit] = Field(default_factory=list)
     telemetry: Telemetry = Field(default_factory=Telemetry)
-    request_id: Optional[str] = None
+    request_id: str | None = None
