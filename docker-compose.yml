@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # MCP Server mode
+  guardian-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: neuro-symbolic-guardian:latest
+    container_name: ns-guardian-mcp
+    command: ["ns-guardian", "--mode", "mcp"]
+    environment:
+      - AEGIS_ENV=production
+      - AEGIS_ENABLE_LLM=${AEGIS_ENABLE_LLM:-false}
+      - AEGIS_LLM_API_KEY=${AEGIS_LLM_API_KEY}
+      - AEGIS_LLM_BASE_URL=${AEGIS_LLM_BASE_URL}
+      - AEGIS_LLM_MODEL=${AEGIS_LLM_MODEL:-gpt-4o-mini}
+      - AEGIS_POLICY_PATH=/app/policies/production.yaml
+    volumes:
+      - ./policies:/app/policies:ro
+      - ./logs:/app/logs
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  # API Server mode
+  guardian-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: neuro-symbolic-guardian:latest
+    container_name: ns-guardian-api
+    command: ["ns-guardian", "--mode", "api", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      - AEGIS_ENV=production
+      - AEGIS_ENABLE_LLM=${AEGIS_ENABLE_LLM:-false}
+      - AEGIS_LLM_API_KEY=${AEGIS_LLM_API_KEY}
+      - AEGIS_LLM_BASE_URL=${AEGIS_LLM_BASE_URL}
+      - AEGIS_LLM_MODEL=${AEGIS_LLM_MODEL:-gpt-4o-mini}
+      - AEGIS_POLICY_PATH=/app/policies/production.yaml
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./policies:/app/policies:ro
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Prometheus (optional metrics)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ns-guardian-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    depends_on:
+      - guardian-api
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  # Grafana (optional dashboards)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ns-guardian-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+volumes:
+  prometheus-data:
+  grafana-data:

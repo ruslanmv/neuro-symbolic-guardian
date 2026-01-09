@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from pydantic import ValidationError
 
-from ..schemas import Action, Facts, Intent
 from ..providers.base import LLMProvider
+from ..schemas import Action, Facts, Intent
 from .base import IntentExtractor
-
 
 SYSTEM_PROMPT = """You are Aegis, an intent extraction component.
 Return only JSON with keys: action, assumptions.
@@ -23,14 +22,14 @@ class LLMIntentExtractor(IntentExtractor):
         self.provider = provider
         self.prompt_version = prompt_version
 
-    def extract(self, text: str, *, facts: Optional[Dict[str, Any]] = None) -> Intent:
+    def extract(self, text: str, *, facts: dict[str, Any] | None = None) -> Intent:
         user_prompt = self._build_user_prompt(text, facts or {})
         raw = self.provider.chat_json(SYSTEM_PROMPT, user_prompt, timeout_s=15.0)
 
         try:
             action = Action.model_validate(raw.get("action", {}))
         except ValidationError as e:
-            raise ValueError(f"Invalid action schema: {e}")
+            raise ValueError(f"Invalid action schema: {e}") from e
 
         assumptions = raw.get("assumptions", [])
         if not isinstance(assumptions, list):
@@ -45,7 +44,7 @@ class LLMIntentExtractor(IntentExtractor):
         )
 
     @staticmethod
-    def _build_user_prompt(text: str, facts: Dict[str, Any]) -> str:
+    def _build_user_prompt(text: str, facts: dict[str, Any]) -> str:
         return (
             "Extract a structured action from the user request.\n"
             "User text:\n"

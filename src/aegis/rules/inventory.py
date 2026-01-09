@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from z3 import Int, Solver, sat
 
@@ -17,7 +17,7 @@ class InventoryNonNegativeRule:
 
     rule_id = "inventory.non_negative"
 
-    def evaluate(self, intent: Intent, params: Dict[str, Any]) -> RuleHit:
+    def evaluate(self, intent: Intent, params: dict[str, Any]) -> RuleHit:
         op = intent.action.op
         args = intent.action.args or {}
 

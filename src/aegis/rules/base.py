@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Protocol
+from typing import Any, Protocol
 
 from ..schemas import Intent, RuleHit
 
@@ -9,7 +9,7 @@ from ..schemas import Intent, RuleHit
 class Rule(Protocol):
     rule_id: str
 
-    def evaluate(self, intent: Intent, params: Dict[str, Any]) -> RuleHit:
+    def evaluate(self, intent: Intent, params: dict[str, Any]) -> RuleHit:
         ...
 
 
@@ -17,10 +17,10 @@ class Rule(Protocol):
 class RuleSpec:
     id: str
     enabled: bool = True
-    params: Dict[str, Any] = None  # type: ignore
+    params: dict[str, Any] = None  # type: ignore
 
     @staticmethod
-    def from_dict(d: Dict[str, Any]) -> "RuleSpec":
+    def from_dict(d: dict[str, Any]) -> RuleSpec:
         return RuleSpec(
             id=str(d.get("id")),
             enabled=bool(d.get("enabled", True)),

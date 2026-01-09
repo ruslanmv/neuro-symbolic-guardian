@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict
-
 from .base import Rule
 
 
@@ -9,7 +7,7 @@ class RuleRegistry:
     """In-process rule registry."""
 
     def __init__(self) -> None:
-        self._rules: Dict[str, Rule] = {}
+        self._rules: dict[str, Rule] = {}
 
     def register(self, rule: Rule) -> None:
         self._rules[rule.rule_id] = rule
@@ -22,5 +20,5 @@ class RuleRegistry:
     def has(self, rule_id: str) -> bool:
         return rule_id in self._rules
 
-    def all(self) -> Dict[str, Rule]:
+    def all(self) -> dict[str, Rule]:
         return dict(self._rules)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ..schemas import Action, Facts, Intent
 from .base import IntentExtractor
@@ -17,7 +17,7 @@ class RegexFallbackExtractor(IntentExtractor):
     _add = re.compile(r"add\s+(?P<amount>\d+)", re.I)
     _from = re.compile(r"from\s+(?P<state>\d+)", re.I)
 
-    def extract(self, text: str, *, facts: Optional[Dict[str, Any]] = None) -> Intent:
+    def extract(self, text: str, *, facts: dict[str, Any] | None = None) -> Intent:
         txt = text or ""
         amount = None
         op = None

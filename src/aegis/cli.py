@@ -25,7 +25,6 @@ def main(argv: list[str] | None = None) -> int:
         if not isinstance(facts, dict):
             raise ValueError
     except Exception:
-        print("--facts must be valid JSON object", file=sys.stderr)
         return 2
 
     settings = Settings.from_env()
@@ -35,9 +34,8 @@ def main(argv: list[str] | None = None) -> int:
     engine = AegisEngine(policy=settings.load_policy())
     extractor = RegexFallbackExtractor()
     intent = extractor.extract(text, facts=facts)
-    decision = engine.verify(intent)
+    engine.verify(intent)
 
-    print(json.dumps(decision.model_dump(), indent=2))
     return 0
 
 

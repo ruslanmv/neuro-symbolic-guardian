@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Literal
 
 Operation = Literal["consume", "add"]
 
@@ -33,7 +33,7 @@ class LLMInterface:
     )
     _ADD_RE = re.compile(r"\b(?:add|buy|receive|get)\s*(?P<add>\d+)\b", re.IGNORECASE)
 
-    def parse_user_intent(self, user_text: str) -> Optional[UserIntent]:
+    def parse_user_intent(self, user_text: str) -> UserIntent | None:
         """Extract intent from user text.
 
         Examples:
