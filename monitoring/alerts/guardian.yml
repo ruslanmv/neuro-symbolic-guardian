@@ -1,0 +1,82 @@
+# Alert rules for Neuro-Symbolic Guardian
+
+groups:
+  - name: guardian_alerts
+    interval: 30s
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(aegis_requests_total{decision="deny"}[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          component: guardian
+        annotations:
+          summary: "High denial rate detected"
+          description: "More than 50% of requests are being denied in the last 5 minutes"
+
+      # High latency
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(aegis_latency_ms_bucket[5m])) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: guardian
+        annotations:
+          summary: "High latency detected"
+          description: "95th percentile latency is above 1000ms"
+
+      # Service down
+      - alert: GuardianDown
+        expr: up{job="guardian-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: guardian
+        annotations:
+          summary: "Guardian service is down"
+          description: "Guardian API is not responding"
+
+      # Policy issues
+      - alert: UnknownRuleDetected
+        expr: rate(aegis_requests_total{reason_code=~".*unknown_rule.*"}[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: guardian
+        annotations:
+          summary: "Unknown rules referenced in policy"
+          description: "Policy references rules that don't exist"
+
+      # Security alerts
+      - alert: SecretDetectionSpike
+        expr: rate(aegis_requests_total{reason_code=~".*secret.*"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "High rate of secret detection"
+          description: "Spike in secret/API key detection - possible credential leak"
+
+      # Resource usage
+      - alert: HighMemoryUsage
+        expr: container_memory_usage_bytes{container="guardian-api"} / container_spec_memory_limit_bytes{container="guardian-api"} > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "High memory usage"
+          description: "Guardian container is using more than 90% of memory limit"
+
+      # Solver timeouts
+      - alert: SolverTimeouts
+        expr: rate(aegis_requests_total{reason_code=~".*timeout.*"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: guardian
+        annotations:
+          summary: "Z3 solver timeouts increasing"
+          description: "High rate of solver timeouts - may need to increase timeout limits"

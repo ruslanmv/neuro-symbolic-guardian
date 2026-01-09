@@ -1,0 +1,194 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: neuro-symbolic-guardian
+  labels:
+    name: neuro-symbolic-guardian
+    environment: production
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: guardian-config
+  namespace: neuro-symbolic-guardian
+data:
+  AEGIS_ENV: "production"
+  AEGIS_LOG_LEVEL: "INFO"
+  AEGIS_FAIL_MODE: "closed"
+  AEGIS_SOLVER_TIMEOUT: "100"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: guardian-secrets
+  namespace: neuro-symbolic-guardian
+type: Opaque
+stringData:
+  AEGIS_LLM_API_KEY: "your-api-key-here"  # Replace with actual secret
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guardian-api
+  namespace: neuro-symbolic-guardian
+  labels:
+    app: guardian-api
+    version: v2.0.0
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: guardian-api
+  template:
+    metadata:
+      labels:
+        app: guardian-api
+        version: v2.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: guardian
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: guardian
+          image: neuro-symbolic-guardian:2.0.0
+          imagePullPolicy: IfNotPresent
+          command: ["ns-guardian"]
+          args: ["--mode", "api", "--host", "0.0.0.0", "--port", "8000"]
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: AEGIS_ENABLE_LLM
+              value: "true"
+            - name: AEGIS_LLM_BASE_URL
+              value: "https://api.openai.com/v1"
+            - name: AEGIS_LLM_MODEL
+              value: "gpt-4o-mini"
+            - name: AEGIS_LLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: guardian-secrets
+                  key: AEGIS_LLM_API_KEY
+          envFrom:
+            - configMapRef:
+                name: guardian-config
+          volumeMounts:
+            - name: policy
+              mountPath: /app/policies
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: policy
+          configMap:
+            name: guardian-policy
+        - name: tmp
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: guardian-api
+  namespace: neuro-symbolic-guardian
+  labels:
+    app: guardian-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: guardian-api
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: guardian
+  namespace: neuro-symbolic-guardian
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: guardian-api
+  namespace: neuro-symbolic-guardian
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: guardian-api
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: guardian-api
+  namespace: neuro-symbolic-guardian
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: guardian-api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
