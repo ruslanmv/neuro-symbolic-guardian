@@ -81,6 +81,11 @@ target-version = "py311"
 select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "T20", "SIM"]
 ignore = ["E501", "B008"]
 
+[tool.ruff.lint.per-file-ignores]
+# Allow print statements in documentation examples and CLI output
+"docs/**/*.py" = ["T201"]
+"src/ns_guardian/server.py" = ["T201"]
+
 [tool.mypy]
 python_version = "3.11"
 strict = true
